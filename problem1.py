@@ -31,44 +31,49 @@ def find_empty_room(hotel):
         for idx in range(1, w + 1):
             if hotel[i][idx] == 0:
                 empty_room.append((i, idx))
+
     return empty_room
 
 
-def check_in(hotel, visit, day, fake=0):
+def make_request(id, floor, room):
+    request = {}
+    request["id"] = id
+    request["room_number"] = make_room_number(floor, room)
+
+    return request
+
+
+def find_possible_room(empty_room, hotel, c):
+    need_room = c["amount"]
+    stay = c["check_out_date"] - c["check_in_date"]
+    for idx, (now_floor, now_room) in enumerate(empty_room):
+        # 해당 층이 예약 필요 방의 수를 수용 가능한지
+        if now_room + need_room - 1 <= w:
+            can_checkin = True
+            for i_idx in range(now_room + 1, now_room + need_room):
+                if hotel[now_floor][i_idx] > 0:
+                    can_checkin = False
+                    break
+            # 숙박할 자리 있으면 숙박 시킨다
+            if can_checkin:
+                for i in range(need_room):
+                    hotel[now_floor][now_room + i] = stay
+
+                return now_floor, now_room, can_checkin
+
+    return -1, -1, False
+
+
+def check_in(hotel, visit, day):
     check = visit[day]
     # 점수를 많이 받기 위해서 받을 점수가 높은 순으로 정렬함
     check.sort(key=lambda x: sort_by_num_and_stay(x), reverse=True)
     real_check = []
     for c in check:
         empty_room = find_empty_room(hotel)
-        amount = c["amount"]
-        stay = c["check_out_date"] - c["check_in_date"]
-        floor = 0
-        room = 0
-        flg = -1
-        for idx, (f, r) in enumerate(empty_room):
-            # 해당 층에 체크인 가능하면
-            if r + amount - 1 <= w:
-                fflg = 0
-                for i_idx in range(r + 1, r + amount):
-                    if hotel[f][i_idx] > 0:
-                        fflg = 1
-                        break
-                # 숙박할 자리 있으면 숙박 시킨다
-                if fflg == 0:
-                    for i in range(amount):
-                        hotel[f][r + i] = stay
-                    flg = idx
-                    room = r
-                    floor = f
-                    break
-        # 실제 숙박했는지 확인하고 리스트로 저장
-        if flg != -1:
-            tmp = {}
-            tmp["id"] = c["id"]
-            tmp["room_number"] = make_room_number(floor, room)
-
-            real_check.append(tmp)
+        floor, room, can_checkin = find_possible_room(empty_room, hotel, c)
+        if can_checkin:
+            real_check.append(make_request(c["id"], floor, room))
 
     return hotel, real_check
 
@@ -114,7 +119,7 @@ def main():
                         if fake_hotel[i][j] != 0:
                             fake_hotel[i][j] -= 1
                 # 하루 지날 때 마다 가짜 호텔 체크인 시킨다 / fake는 디버깅하기 위해서 사용
-                fake_hotel, _ = check_in(fake_hotel, visit, fake_day, 1)
+                fake_hotel, _ = check_in(fake_hotel, visit, fake_day)
                 print("fake날짜지나고", fake_hotel, fake_day)
                 # 가짜호텔 하루 지나게하기
 
