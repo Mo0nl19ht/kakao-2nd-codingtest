@@ -25,30 +25,28 @@ def make_room_number(floor, room):
         return room_number + str(room)
 
 
+def find_empty_room(hotel):
+    empty_room = []
+    for i in range(1, h + 1):
+        for idx in range(1, w + 1):
+            if hotel[i][idx] == 0:
+                empty_room.append((i, idx))
+    return empty_room
+
+
 def check_in(hotel, visit, day, fake=0):
-    if day == 12 and fake == 0:
-        print(12)
     check = visit[day]
     # 점수를 많이 받기 위해서 받을 점수가 높은 순으로 정렬함
     check.sort(key=lambda x: sort_by_num_and_stay(x), reverse=True)
-    if fake == 1:
-        print("가짜 체크인", check, day)
     real_check = []
     for c in check:
-        posible_room = []
-        # 먼저 숙박 가능한 방 모두 가져오기
-        for i in range(1, h + 1):
-            for idx in range(1, w + 1):
-                if hotel[i][idx] == 0:
-                    posible_room.append((i, idx))
-        if day == 12 and fake == 0 and c["id"] == 348018:
-            print(1)
+        empty_room = find_empty_room(hotel)
         amount = c["amount"]
         stay = c["check_out_date"] - c["check_in_date"]
         floor = 0
         room = 0
         flg = -1
-        for idx, (f, r) in enumerate(posible_room):
+        for idx, (f, r) in enumerate(empty_room):
             # 해당 층에 체크인 가능하면
             if r + amount - 1 <= w:
                 fflg = 0
